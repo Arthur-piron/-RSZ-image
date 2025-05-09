@@ -3,18 +3,15 @@ import easygui
 from PIL import Image
 
 print("WELCOME TO RESIZE IMAGE by Artcrus")
-
 print("You can specify the absolute path for your directory if they aren't in your current directory.")
 
-# Utiliser easygui pour sélectionner le dossier source et cible
+# Sélection des dossiers
 source_dir = easygui.diropenbox(title="Select the Source Directory")
 target_dir = easygui.diropenbox(title="Select the Target Directory")
 
-# Demander les dimensions
-x = int(input("New size x: "))
-y = int(input("New size y: "))
-new_dimensions = (x, y)
-background_color = input("Choose the color of the background you are going to add (in English): ")
+# Dimensions exactes à prélever
+x = int(input("Crop width (pixels): "))
+y = int(input("Crop height (pixels): "))
 
 os.makedirs(target_dir, exist_ok=True)
 
@@ -22,23 +19,22 @@ for filename in os.listdir(source_dir):
     if filename.lower().endswith(".jpg"):
         filepath = os.path.join(source_dir, filename)
         with Image.open(filepath) as img:
-            img_ratio = img.width / img.height
-            target_ratio = x / y
+            img = img.convert("RGB")
 
-            if img_ratio > target_ratio:
-                new_width = x
-                new_height = round(x / img_ratio)
-            else:
-                new_height = y
-                new_width = round(y * img_ratio)
+            # Vérifie que l’image est assez grande
+            if img.width < x or img.height < y:
+                print(f"[SKIPPED]: {filename} is smaller than the requested size ({x}x{y})")
+                continue
 
-            img_resized = img.resize((new_width, new_height), Image.LANCZOS)
+            # Coordonnées pour crop centré
+            left = (img.width - x) // 2
+            top = (img.height - y) // 2
+            right = left + x
+            bottom = top + y
 
-            background = Image.new("RGB", (x, y), color=background_color)
-            offset = ((x - new_width) // 2, (y - new_height) // 2)
-            background.paste(img_resized, offset)
+            cropped = img.crop((left, top, right, bottom))
 
             output_path = os.path.join(target_dir, filename)
-            background.save(output_path)
+            cropped.save(output_path)
 
-            print("[DONE]:", filename, "has been successfully resized")
+            print("[DONE]:", filename, "has been cropped (center zoom)")
